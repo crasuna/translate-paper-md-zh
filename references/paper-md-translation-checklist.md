@@ -84,11 +84,12 @@ $missing = @()
 $outside = @()
 $external = @()
 foreach ($link in $links) {
-  $normalized = $link.Trim('"') -replace '/','\'
-  if ($normalized -match '^https?://' -or $normalized -match '^[a-zA-Z][a-zA-Z0-9+.-]*://') {
+  $raw = $link.Trim('"')
+  if ($raw -match '^https?://' -or $raw -match '^[a-zA-Z][a-zA-Z0-9+.-]*://') {
     $external += $link
     continue
   }
+  $normalized = $raw -replace '/','\'
   if ([System.IO.Path]::IsPathRooted($normalized)) {
     $outside += $link
     continue
@@ -149,11 +150,12 @@ Get-ChildItem -LiteralPath '<output-folder>\assets' -Recurse -File -Filter '*.pn
 
 Use a temporary folder and do not call imagegen for this smoke test.
 
-1. Create a tiny source Markdown with one heading, one paragraph, one Markdown table row, one display math block, and one local image link.
+1. Create a tiny source Markdown with one heading, one paragraph, one Markdown table row, one display math block, one local image link, and one URL image link such as `https://example.com/a.png`.
 2. Use a local PNG with no visible English text, or omit imagegen entirely if no image tool is available.
 3. Run the skill against that Markdown and write output to a separate temporary output folder.
-4. Confirm the translated Markdown exists, the original image was copied to `assets/original/`, no localized image was created for the no-English figure, and the image-link check reports `MissingCount = 0`.
-5. Delete the temporary folder after reviewing the output.
+4. Confirm the translated Markdown exists, the original image was copied to `assets/original/`, no localized image was created for the no-English figure, and the image-link check reports `MissingCount = 0`, `OutsideBaseCount = 0`, and `ExternalCount = 1`.
+5. Confirm `ExternalLinks` contains the URL image, and the URL is not listed in `MissingLinks` or `OutsideBaseLinks`.
+6. Delete the temporary folder after reviewing the output.
 
 ## Final Report
 
