@@ -26,6 +26,7 @@ Before calling imagegen:
 3. Build an explicit replacement map.
 4. State invariants: preserve geometry, curves, grayscale/color maps, arrows, units, numbers, symbols, panel letters, and data values.
 5. After generation, copy the selected image from `$CODEX_HOME/generated_images/...` into the output `assets/zh/` folder.
+6. Inspect the localized figure before linking it. If labels are unreadable, numbers/units changed, or scientific content was redrawn, discard the result and retry at most once; if it still fails, keep only the original figure and report the residual risk.
 
 Prompt skeleton:
 
@@ -48,18 +49,39 @@ Check image links:
 
 ```powershell
 $path = '<translated-md>'
-$base = Split-Path -Parent $path
+$base = (Resolve-Path -LiteralPath (Split-Path -Parent $path)).Path
 $content = Get-Content -Raw -LiteralPath $path
 $links = [regex]::Matches($content,'!\[[^\]]*\]\(([^)]+)\)') | ForEach-Object { $_.Groups[1].Value }
 $missing = @()
+$outside = @()
 foreach ($link in $links) {
-  $full = Join-Path $base ($link -replace '/','\')
-  if (-not (Test-Path -LiteralPath $full)) { $missing += $link }
+  $normalized = $link.Trim('"') -replace '/','\'
+  if ($normalized -match '^[a-zA-Z][a-zA-Z0-9+.-]*:' -or [System.IO.Path]::IsPathRooted($normalized)) {
+    $outside += $link
+    continue
+  }
+  $candidate = Join-Path $base $normalized
+  if (-not (Test-Path -LiteralPath $candidate)) {
+    $missing += $link
+    continue
+  }
+  $resolved = (Resolve-Path -LiteralPath $candidate).Path
+  $inside = $resolved.Equals($base, [StringComparison]::OrdinalIgnoreCase) -or
+    $resolved.StartsWith($base + [IO.Path]::DirectorySeparatorChar, [StringComparison]::OrdinalIgnoreCase)
+  if (-not $inside) { $outside += $link }
 }
-[PSCustomObject]@{ ImageLinks = $links.Count; MissingCount = $missing.Count; MissingLinks = ($missing -join '; ') }
+[PSCustomObject]@{
+  ImageLinks = $links.Count
+  MissingCount = $missing.Count
+  OutsideBaseCount = $outside.Count
+  MissingLinks = ($missing -join '; ')
+  OutsideBaseLinks = ($outside -join '; ')
+}
 ```
 
 Compare structure counts:
+
+Image count expectations: if the translated Markdown only copies original figures, `Images` should match the source. If it shows both `原图` and `中文标注图`, translated `Images` will usually be twice the source figure count.
 
 ```powershell
 function Counts($label, $path) {
