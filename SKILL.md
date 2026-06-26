@@ -10,7 +10,8 @@ description: Translate English academic paper Markdown files into Chinese study 
 1. Inspect the source Markdown before editing.
    - Read the file structure, heading levels, image links, tables, math blocks, and citation style.
    - Count headings, image links, math delimiters, `\tag{}` occurrences, and table rows for later comparison.
-   - Resolve image paths relative to the source Markdown file.
+   - Classify image links as existing local relative paths, existing local absolute paths, URLs, or uncopyable resources.
+   - Resolve local relative image paths relative to the source Markdown file.
 
 2. Choose a non-destructive output layout.
    - Use the user's requested output directory when provided.
@@ -25,8 +26,10 @@ description: Translate English academic paper Markdown files into Chinese study 
    - Keep Markdown readable and stable; avoid adding commentary unless the user asked for a study-note or annotated edition.
 
 4. Handle figures.
-   - Copy every original figure into `assets/original/` using the source file name; if a name collides, append `_2`, `_3`, and so on before the extension.
-   - Inspect each figure for visible, translatable English text labels.
+   - Copy every existing local source figure, relative or absolute, into `assets/original/` using the source file name; if a name collides, append `_2`, `_3`, and so on before the extension.
+   - Do not download URL figures or create placeholder files for uncopyable resources unless the user explicitly asks; preserve those original links and report them as `ExternalResources` or `UncopiedResources`.
+   - Inspect each copied local figure for visible, translatable English text labels.
+   - Treat only visible English words or phrases as translatable labels; do not translate coordinate values, units, acronyms, formula symbols, panel letters, or data labels unless the user provides an explicit replacement map.
    - For figures with translatable English labels, use the `imagegen` skill's built-in image editing path for `text-localization`.
    - For figures without translatable English labels, do not create a localized figure.
    - For each figure, inspect it first, list exact text replacements, and prompt image editing to change only labels while preserving scientific content.
@@ -35,11 +38,11 @@ description: Translate English academic paper Markdown files into Chinese study 
    - In the Markdown, show `原图` for every source figure and add `中文标注图` only for accepted localized figures.
 
 5. Validate before finishing.
-   - Verify every Markdown image link exists and resolves inside the output folder; flag absolute paths, URLs, or `..` paths that escape the translated edition.
+   - Verify every copied local Markdown image link exists and resolves inside the output folder; list preserved URLs and uncopyable resources separately instead of treating them as copied assets.
    - Compare source and translated structure counts: headings, math block delimiters, equation tags, and table rows.
    - Preview every localized figure before accepting it and check that labels are readable, numbers/units remain unchanged, and scientific diagrams were not materially redrawn.
    - If a localized figure cannot be previewed, do not report it as accepted; keep the original figure authoritative and report the localized file as unconfirmed risk only if the user explicitly requested unverified localized figures.
-   - Report the final Markdown path, figure asset paths, imagegen usage, and any residual risk.
+   - Report the final Markdown path, figure asset paths, imagegen usage, `ExternalResources`, `UncopiedResources`, mechanical corrections, accepted localized figures, unconfirmed localized figures, and any residual risk.
 
 ## Reference
 

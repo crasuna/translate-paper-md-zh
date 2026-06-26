@@ -1,4 +1,4 @@
 interface:
   display_name: "Translate Paper MD to Chinese"
   short_description: "Translate English paper Markdown into Chinese study editions"
-  default_prompt: "Use $translate-paper-md-zh to create a Chinese study edition of this English paper Markdown, preserving original figures and localizing figures that contain English text labels."
+  default_prompt: "Use $translate-paper-md-zh to create a Chinese study edition of this English paper Markdown, preserving original figures and localizing copied local figures with visible English text labels."

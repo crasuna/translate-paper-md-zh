@@ -35,6 +35,20 @@ Before calling imagegen:
 6. After generation, copy the selected image from `$CODEX_HOME/generated_images/...` into the output `assets/zh/` folder.
 7. Inspect the localized figure before linking it. If labels are unreadable, numbers/units changed, or scientific content was redrawn, discard the result and retry at most once; if it still fails, keep only the original figure and report the residual risk.
 
+English label rule:
+
+- Translate only visible English words or phrases in the figure.
+- Do not translate coordinate values, units, acronyms, formula symbols, panel letters, or data labels unless the user provides an explicit replacement map.
+- If a label is ambiguous, leave it unchanged and list it in the final report.
+
+## Image Resource Handling
+
+- Copy existing local relative image paths and existing local absolute image paths into `assets/original/`.
+- Resolve relative paths from the source Markdown file's directory, not from the current shell directory.
+- Do not download URL images by default. Keep the original URL in the translated Markdown and list it under `ExternalResources`.
+- Do not create placeholder image files for missing, unreadable, or otherwise uncopyable local resources. Keep the original link and list it under `UncopiedResources`.
+- Download or transform external resources only when the user explicitly asks for that behavior.
+
 ## Figure Naming
 
 - Copy originals to `assets/original/` using the source file name.
@@ -68,9 +82,14 @@ $content = Get-Content -Raw -LiteralPath $path
 $links = [regex]::Matches($content,'!\[[^\]]*\]\(([^)]+)\)') | ForEach-Object { $_.Groups[1].Value }
 $missing = @()
 $outside = @()
+$external = @()
 foreach ($link in $links) {
   $normalized = $link.Trim('"') -replace '/','\'
-  if ($normalized -match '^[a-zA-Z][a-zA-Z0-9+.-]*:' -or [System.IO.Path]::IsPathRooted($normalized)) {
+  if ($normalized -match '^https?://' -or $normalized -match '^[a-zA-Z][a-zA-Z0-9+.-]*://') {
+    $external += $link
+    continue
+  }
+  if ([System.IO.Path]::IsPathRooted($normalized)) {
     $outside += $link
     continue
   }
@@ -88,8 +107,10 @@ foreach ($link in $links) {
   ImageLinks = $links.Count
   MissingCount = $missing.Count
   OutsideBaseCount = $outside.Count
+  ExternalCount = $external.Count
   MissingLinks = ($missing -join '; ')
   OutsideBaseLinks = ($outside -join '; ')
+  ExternalLinks = ($external -join '; ')
 }
 ```
 
@@ -124,6 +145,16 @@ Get-ChildItem -LiteralPath '<output-folder>\assets' -Recurse -File -Filter '*.pn
   } | Format-Table -AutoSize
 ```
 
+## Minimal Forward Test
+
+Use a temporary folder and do not call imagegen for this smoke test.
+
+1. Create a tiny source Markdown with one heading, one paragraph, one Markdown table row, one display math block, and one local image link.
+2. Use a local PNG with no visible English text, or omit imagegen entirely if no image tool is available.
+3. Run the skill against that Markdown and write output to a separate temporary output folder.
+4. Confirm the translated Markdown exists, the original image was copied to `assets/original/`, no localized image was created for the no-English figure, and the image-link check reports `MissingCount = 0`.
+5. Delete the temporary folder after reviewing the output.
+
 ## Final Report
 
 Report:
@@ -132,4 +163,7 @@ Report:
 - The original-figure and localized-figure asset folders.
 - Whether imagegen was used.
 - The validation results for image links and structure counts.
+- `ExternalResources` and `UncopiedResources`.
+- Mechanical corrections made, with source location and changed text or syntax.
+- Accepted localized figures and unconfirmed localized figures.
 - Any figure-localization imperfections or manual review notes.
