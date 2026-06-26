@@ -5,17 +5,23 @@
 - Translate with model judgment only; do not call external translation tools.
 - Prefer Chinese-first study prose with first-use English terms/acronyms in parentheses.
 - Keep domain terminology consistent after first use.
-- Preserve author names, journal names, grant numbers, software names, locations, and manufacturer details unless a direct Chinese translation is conventional.
+- Preserve author names, journal names, grant numbers, software names, locations, and manufacturer details.
 - Preserve numbers, signs, units, Greek letters, equation references, and citation numbering exactly.
 
 ## Markdown Preservation
 
 - Keep heading hierarchy equivalent to the source.
-- Preserve display math blocks and `\tag{}` labels exactly unless the source has a clear typo.
+- Preserve display math blocks and `\tag{}` labels exactly.
 - Preserve Markdown table column count, row count, alignment markers, and numeric values.
-- Translate table headers and row labels, but keep method acronyms such as MRE, DWI, DTI, ADC, SE, EPI, HARDI, or task-specific acronyms when they are standard.
+- Translate table headers and row labels, but keep method acronyms that appear in the source, including MRE, DWI, DTI, ADC, SE, EPI, HARDI, or task-specific acronyms.
 - Preserve image order and figure numbering.
 - Use relative image links from the translated Markdown to copied assets.
+
+## Mechanical Corrections
+
+- Make only non-semantic mechanical corrections: obvious spelling typos in prose, broken Markdown table/link/escape syntax, duplicate punctuation, or OCR/layout residue.
+- Do not alter numbers, units, equation meaning, citation numbering, author information, manufacturer details, or scientific claims.
+- Report every correction in the final report with the source location and the changed text or syntax.
 
 ## Figure Localization Pattern
 
@@ -23,10 +29,18 @@ Before calling imagegen:
 
 1. Inspect the local image with `view_image`.
 2. Identify the figure's role and all visible English labels.
-3. Build an explicit replacement map.
-4. State invariants: preserve geometry, curves, grayscale/color maps, arrows, units, numbers, symbols, panel letters, and data values.
-5. After generation, copy the selected image from `$CODEX_HOME/generated_images/...` into the output `assets/zh/` folder.
-6. Inspect the localized figure before linking it. If labels are unreadable, numbers/units changed, or scientific content was redrawn, discard the result and retry at most once; if it still fails, keep only the original figure and report the residual risk.
+3. If the figure has no translatable English labels, copy only the original figure and skip imagegen.
+4. Build an explicit replacement map for every translatable English label.
+5. State invariants: preserve geometry, curves, grayscale/color maps, arrows, units, numbers, symbols, panel letters, and data values.
+6. After generation, copy the selected image from `$CODEX_HOME/generated_images/...` into the output `assets/zh/` folder.
+7. Inspect the localized figure before linking it. If labels are unreadable, numbers/units changed, or scientific content was redrawn, discard the result and retry at most once; if it still fails, keep only the original figure and report the residual risk.
+
+## Figure Naming
+
+- Copy originals to `assets/original/` using the source file name.
+- If two source figures share the same file name, append `_2`, `_3`, and so on before the extension.
+- Save accepted localized figures to `assets/zh/` as `<original-stem>_zh.<ext>`.
+- If localized names collide, append `_2`, `_3`, and so on before the extension.
 
 Prompt skeleton:
 
@@ -81,7 +95,7 @@ foreach ($link in $links) {
 
 Compare structure counts:
 
-Image count expectations: if the translated Markdown only copies original figures, `Images` should match the source. If it shows both `原图` and `中文标注图`, translated `Images` will usually be twice the source figure count.
+Image count expectations: let source image count be `S` and accepted localized figure count be `L`. The translated Markdown image count must be `S + L`.
 
 ```powershell
 function Counts($label, $path) {
